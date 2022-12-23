@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -12,23 +13,31 @@ public class Container
     protected readonly Dictionary<Type, Dictionary<string, Type>>
     types = new Dictionary<Type, Dictionary<string, Type>>();
     protected readonly Dictionary<Type, TypeData> typeDatas = new Dictionary<Type, TypeData>();
-
-
+    
     public virtual void Initialize()
     {
         IOCExtenions.SetDependencyInjector(this);
     }
-
+    
     public virtual void Register(Type interfaceType, Type type, ClassInfo info)
     {
         try
         {
             TypeData typeData = TypeData.Create(type, info.isSingleton, type.IsSubclassOf(typeof(MonoBase)) ? info.implementation : null);
-
-            string key = info.implementation.gameObject.name;
-            GameObject implementation = info.implementation.gameObject;
+            string key = "";
+            object implementation = new();
+            if (type.IsSubclassOf(typeof(MonoBase)))
+            {
+                key = info.implementation.gameObject.name;
+                implementation = info.implementation.gameObject;
+            }
+            else
+            {
+                implementation = ConstructClass(type);
+            }
             if (this.types.ContainsKey(interfaceType ?? type))
             {
+                if (types[interfaceType ?? type].ContainsKey(key ?? string.Empty)) key = key + "(1)";
                 this.types[interfaceType ?? type].Add(key ?? string.Empty, type);
             }
             else
@@ -41,12 +50,14 @@ public class Container
             }
             if (!this.implementations.ContainsKey(type))
             {
-                this.implementations.Add(type, new Dictionary<string, GameObject> { { key ?? string.Empty, implementation } });
+                this.implementations.Add(type, new Dictionary<string, GameObject> { { key ?? string.Empty, implementation as GameObject} });
             }
             else
             {
-                this.implementations[type].Add(key ?? string.Empty, implementation);
+                this.implementations[type].Add(key ?? string.Empty, implementation as GameObject);
             }
+
+            
         }
         catch (Exception ex)
         {
@@ -54,11 +65,17 @@ public class Container
         }
     }
 
-
     public T Inject<T>(object obj)
     {
         return (T)this.Inject(typeof(T), obj);
+    
     }
+
+    private object ConstructClass(Type type)
+    {
+        var implementation = Activator.CreateInstance(type);
+        return implementation;
+    } 
 
     private static void Guard(bool failed, string format, params object[] args)
     {
@@ -79,7 +96,6 @@ public class Container
             {
                 this.types.Add(type, new Dictionary<string, Type> { { string.Empty, type } });
             }
-            //this.Register(null, type, new ClassInfo());
         }
 
         return this.typeDatas[type];

@@ -23,6 +23,6 @@ public class DependentClass : MonoBase
     [EditorButton]
     public void SingletonIsHere()
     {
-        singleton.Instance.IAmASingleton();
+        singleton.IAmASingleton();
     }
 }

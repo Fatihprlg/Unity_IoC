@@ -246,15 +246,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8caca19b1018d4936bdae91b28e390b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  singletonGameObject: {fileID: 1349793863}
   classes:
+  - implementation: {fileID: 764486498}
+    isSingleton: 0
+  - implementation: {fileID: 1005191253}
+    isSingleton: 0
   - implementation: {fileID: 1235328652}
+    isSingleton: 0
+  - implementation: {fileID: 1349793864}
     isSingleton: 0
   - implementation: {fileID: 1522536259}
     isSingleton: 0
-  - implementation: {fileID: 1349793864}
-    isSingleton: 1
-  subBuilders: []
+  - implementation: {fileID: 1549172885}
+    isSingleton: 0
 --- !u!4 &764486499
 Transform:
   m_ObjectHideFlags: 0
@@ -600,8 +604,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca58fcde201344fdaa78db4c3cbf8079, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainBuilders:
-  - {fileID: 764486498}
+  mainBuilder: {fileID: 764486498}
 --- !u!4 &1549172886
 Transform:
   m_ObjectHideFlags: 0
