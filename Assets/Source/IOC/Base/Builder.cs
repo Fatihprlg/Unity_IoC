@@ -1,21 +1,19 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 #if UNITY_EDITOR
 using System.Reflection;
 using UnityEditor;
 #endif
 
-public class Builder : MonoBase
+public class Builder : MonoBehaviour
 {
     [SerializeField] protected List<ClassInfo> classes;
 
-    public virtual void Build(Container container)
+    public void Build(Container container)
     {
         foreach (var item in classes)
         {
+            if(item.implementation == null) continue;
             var type = item.implementation.GetType();
             container.Register(type.BaseType, type, item);
         }
@@ -28,13 +26,13 @@ public class Builder : MonoBase
         AssemblyReloadEvents.afterAssemblyReload += MapClassesOnScene;
     }
     
-    [EditorButton]
     private void MapClassesOnScene()
     {
         classes.Clear();
-        var monos = FindObjectsOfType<MonoBase>();
+        var monos = FindObjectsOfType<MonoBase>(true);
         foreach (var mono in monos)
         {
+            if(mono == null) continue;
             ClassInfo info = new ClassInfo()
             {
                 implementation = mono,
