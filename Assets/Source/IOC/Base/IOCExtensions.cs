@@ -1,4 +1,6 @@
-﻿public static class IOCExtenions
+﻿using System.Linq;
+
+public static class IOCExtensions
 {
     private static Container injector;
 
@@ -11,8 +13,8 @@
     {
         injector.Inject<T>(classToInject);
     }
-    public static void Inject<T>(this T classToInject, Container injector) where T : class
+    /*public static void Inject<T>(this T classToInject, Container injector) where T : class
     {
         injector.Inject<T>(classToInject);
-    }
+    }*/
 }

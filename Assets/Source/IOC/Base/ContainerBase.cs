@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using Unity.VisualScripting;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 [System.Serializable]
@@ -13,20 +11,15 @@ public class Container
     protected readonly Dictionary<Type, Dictionary<string, Type>>
     types = new Dictionary<Type, Dictionary<string, Type>>();
     protected readonly Dictionary<Type, TypeData> typeDatas = new Dictionary<Type, TypeData>();
-    
-    public virtual void Initialize()
-    {
-        IOCExtenions.SetDependencyInjector(this);
-    }
-    
+
     public virtual void Register(Type interfaceType, Type type, ClassInfo info)
     {
         try
         {
-            TypeData typeData = TypeData.Create(type, info.isSingleton, type.IsSubclassOf(typeof(MonoBase)) ? info.implementation : null);
+            TypeData typeData = TypeData.Create(type, info.isSingleton, type.IsSubclassOf(typeof(MonoBehaviour)) ? info.implementation : null);
             string key = "";
             object implementation = new();
-            if (type.IsSubclassOf(typeof(MonoBase)))
+            if (type.IsSubclassOf(typeof(MonoBehaviour)))
             {
                 key = info.implementation.gameObject.name;
                 implementation = info.implementation.gameObject;
@@ -37,7 +30,8 @@ public class Container
             }
             if (this.types.ContainsKey(interfaceType ?? type))
             {
-                if (types[interfaceType ?? type].ContainsKey(key ?? string.Empty)) key = key + "(1)";
+                var regex = new Regex($"{key}[0-9]*$");
+                if (types[interfaceType ?? type].ContainsKey(key ?? string.Empty)) key = key + types[interfaceType ?? type].Count(type => regex.IsMatch(type.Key));
                 this.types[interfaceType ?? type].Add(key ?? string.Empty, type);
             }
             else
@@ -68,7 +62,6 @@ public class Container
     public T Inject<T>(object obj)
     {
         return (T)this.Inject(typeof(T), obj);
-    
     }
 
     private object ConstructClass(Type type)
@@ -104,7 +97,7 @@ public class Container
     public object Inject(Type type, object obj)
     {
         var typeData = this.GetTypeData(type);
-
+        
         typeData.Fields.ForEach(x => x.Value.SetValue(obj, this.Resolve(x.Value.FieldType, string.IsNullOrEmpty(x.Key.Key) ? GetImplementation(x.Value.FieldType).gameObject.name : x.Key.Key)));
         typeData.Properties.ForEach(x => x.Value.SetValue(obj, this.Resolve(x.Value.PropertyType, x.Key.Key), null));
 
@@ -117,10 +110,10 @@ public class Container
             "There is no implementation registered with the key {0} for the type {1}.", key, type.Name);
 
         var foundType = this.types[type.BaseType][key ?? string.Empty];
-        var implementationOfType = this.implementations[type][key ?? string.Empty].GetComponent(type.Name) ?? Inject(foundType, implementations[type][key ?? string.Empty].AddComponent(foundType));
+        var implementationOfType = this.implementations[type][key ?? string.Empty].GetComponent(type) ?? Inject(foundType, implementations[type][key ?? string.Empty].AddComponent(foundType));
         var typeData = this.typeDatas[foundType];
 
-        if (foundType.IsSubclassOf(typeof(MonoBase)))
+        if (foundType.IsSubclassOf(typeof(MonoBehaviour)))
         {
             typeData.Instance = implementationOfType;
             return implementationOfType;
@@ -152,7 +145,7 @@ public class Container
         {
             imp = this.implementations[type][key];
         }
-        var implementationOfType = imp.GetComponent(type.Name);
+        var implementationOfType = imp.GetComponent(type);
         return implementationOfType;
     }
 
@@ -160,6 +153,6 @@ public class Container
 [System.Serializable]
 public struct ClassInfo
 {
-    public MonoBase implementation;
+    public MonoBehaviour implementation;
     public bool isSingleton;
 }

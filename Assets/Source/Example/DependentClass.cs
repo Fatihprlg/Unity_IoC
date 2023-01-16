@@ -4,23 +4,23 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using UnityEngine;
 
-public class DependentClass : MonoBase
+public class DependentClass : MonoBehaviour
 {
     [Dependency] private ExampleClass example1;
     [Dependency] private ExampleSingleton singleton;
-    public override void Initialize()
+    public void Start()
     {
         this.Inject();
+        TestIt();
+        SingletonIsHere();
     }
 
-    [EditorButton]
     public void TestIt()
     {
         print(example1.text);
         example1.HelloDear("the great developer");
     }
 
-    [EditorButton]
     public void SingletonIsHere()
     {
         singleton.IAmASingleton();

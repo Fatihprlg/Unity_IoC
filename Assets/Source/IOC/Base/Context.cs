@@ -4,24 +4,32 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-public class Context : MonoBase
+public class Context : MonoBehaviour, IContext
 {
-    [SerializeField] Builder mainBuilder;
-    Container container;
-    public override void Initialize()
+    [SerializeField] protected Builder mainBuilder;
+    [SerializeField] private bool initializeOnAwake = true;
+    private Container container;
+
+    private void Awake()
     {
-        container = new();
-        if (mainBuilder == null) CreateBuilder();
-        mainBuilder.Build(container);
-        container.Initialize();
+        if(!initializeOnAwake) return;
+        Initialize();
     }
 
-    private void CreateBuilder()
+    public void Initialize()
+    {
+        container = new Container();
+        if (mainBuilder == null) CreateBuilder();
+        mainBuilder.Build(container);
+        IOCExtensions.SetDependencyInjector(container);
+    }
+
+    public void CreateBuilder()
     {
         mainBuilder = FindObjectOfType<Builder>();
         if(mainBuilder != null) return;
         Debug.LogError("There is no builder in scene. Creating temporary instance.");
-        var gObj = new GameObject("TemporaryBuilder", typeof(MonoBuilder));
-        mainBuilder = gObj.GetComponent<MonoBuilder>();
+        GameObject gObj = new ("TemporaryBuilder", typeof(Builder));
+        mainBuilder = gObj.GetComponent<Builder>();
     }
 }
