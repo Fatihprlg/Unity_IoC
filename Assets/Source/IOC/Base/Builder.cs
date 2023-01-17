@@ -9,7 +9,6 @@ using UnityEditor;
 #endif
 public class Builder : MonoBehaviour, IBuilder
 {
-    //[SerializeField] protected List<ClassInfo> classes;
     public List<ClassInfo> classes { get; private set; }
     public void Build(Container container)
     {
@@ -39,6 +38,7 @@ public class Builder : MonoBehaviour, IBuilder
         foreach (var mono in monos)
         {
             if (mono == null) continue;
+            if(mono.GetType().Assembly != Assembly.GetAssembly(GetType())) continue;
             bool isSingleton = mono.GetType().GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic)
                                    .Any(info => singletonRegex.IsMatch(info.Name))
                                || mono.GetType().GetProperties(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic)
@@ -59,16 +59,10 @@ public class BuilderEditor : Editor
 {
     private Builder builder;
     private GUIContent mapClassesContent;
-    private GUIStyle linkStyle;
     private void OnEnable()
     {
         builder = target as Builder;
         mapClassesContent = new GUIContent("Map Classes On Scene");
-        linkStyle= new GUIStyle(EditorStyles.label);
-        linkStyle.wordWrap = false;
-        // Match selection color w$$anonymous$$ch works nicely for both light and dark skins
-        linkStyle.normal.textColor = new Color(0x00 / 255f, 0x78 / 255f, 0xDA / 255f, 1f);
-        linkStyle.stretchWidth = false;
     }
 
     public override void OnInspectorGUI()
@@ -88,11 +82,15 @@ public class BuilderEditor : Editor
             for (int index = 0; index < builder.classes.Count; index++)
             {
                 ClassInfo @class = builder.classes[index];
-                if (GUILayout.Button( (index + 1).ToString() + ". " + @class.implementation.GetType().Name, EditorStyles.linkLabel))
+                GUIContent name = new ((index + 1) + ". " + @class.implementation.GetType().Name);
+                if (GUILayout.Button(name,
+                        EditorStyles.linkLabel))
                 {
                     Selection.SetActiveObjectWithContext(@class.implementation, null);
                 }
-                //GUILayout.Label(@class.implementation.GetType().Name);
+                var rect = GUILayoutUtility.GetLastRect();
+                rect.width = EditorStyles.linkLabel.CalcSize(name).x;
+                EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
             }
         }
         
