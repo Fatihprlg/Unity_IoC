@@ -7,17 +7,23 @@ using System.Text.RegularExpressions;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+
 public class Builder : MonoBehaviour, IBuilder
 {
-    public List<ClassInfo> classes { get; private set; }
+    public List<ClassInfo> AllSceneInstances { get; private set; }
+
     public void Build(Container container)
     {
-        if(classes == null || classes.Count <1) MapClasses();
-        foreach (var item in classes)
+        if (AllSceneInstances == null || AllSceneInstances.Count < 1)
         {
-            if (item.implementation == null) continue;
-            var type = item.implementation.GetType();
-            container.Register(type.BaseType, type, item);
+            MapClasses();
+        }
+
+        foreach (var instance in AllSceneInstances)
+        {
+            if (instance.implementation == null) continue;
+            var type = instance.implementation.GetType();
+            container.Register(type.BaseType, type, instance);
         }
     }
 
@@ -31,25 +37,34 @@ public class Builder : MonoBehaviour, IBuilder
 
     public void MapClasses()
     {
-        classes = new List<ClassInfo>();
-        classes.Clear();
+        AllSceneInstances = GetSceneInstanceReferences();
+
+    }
+    private List<ClassInfo> GetSceneInstanceReferences()
+    {
+        var wrappedSceneObjects= new List<ClassInfo>();
         var singletonRegex = new Regex("[_iI]nstance");
-        var monos = FindObjectsOfType<MonoBehaviour>(true);
-        foreach (var mono in monos)
+        var sceneObjects = FindObjectsOfType<MonoBehaviour>(true);
+        foreach (var sceneObject in sceneObjects)
         {
-            if (mono == null) continue;
-            if(mono.GetType().Assembly != Assembly.GetAssembly(GetType())) continue;
-            bool isSingleton = mono.GetType().GetFields(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic)
-                                   .Any(info => singletonRegex.IsMatch(info.Name))
-                               || mono.GetType().GetProperties(BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic)
-                                   .Any(info => singletonRegex.IsMatch(info.Name));
-            ClassInfo info = new ()
+            if (sceneObject == null) continue;
+            if (sceneObject.GetType().Assembly != Assembly.GetAssembly(GetType())) continue;
+
+            var singletonFlag = BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
+
+            var isHaveSingletonField = sceneObject.GetType().GetFields(singletonFlag)
+                .Any(info => singletonRegex.IsMatch(info.Name));
+            var isHaveSingletonProperty = sceneObject.GetType().GetProperties(singletonFlag)
+                .Any(info => singletonRegex.IsMatch(info.Name));
+            ClassInfo info = new()
             {
-                implementation = mono,
-                isSingleton = isSingleton
+                implementation = sceneObject,
+                isSingleton = isHaveSingletonField || isHaveSingletonProperty,
             };
-            classes.Add(info);
+            wrappedSceneObjects.Add(info);
         }
+
+        return wrappedSceneObjects;
     }
 }
 
@@ -59,6 +74,7 @@ public class BuilderEditor : Editor
 {
     private Builder builder;
     private GUIContent mapClassesContent;
+
     private void OnEnable()
     {
         builder = target as Builder;
@@ -74,37 +90,40 @@ public class BuilderEditor : Editor
         {
             builder.MapClasses();
         }
+
         DrawUILine(Color.white);
         GUILayout.Label("Classes on Scene");
         GUILayout.Space(5);
-        if(builder.classes != null)
+        if (builder.AllSceneInstances != null)
         {
-            for (int index = 0; index < builder.classes.Count; index++)
+            for (int index = 0; index < builder.AllSceneInstances.Count; index++)
             {
-                ClassInfo @class = builder.classes[index];
-                GUIContent name = new ((index + 1) + ". " + @class.implementation.GetType().Name);
+                ClassInfo @class = builder.AllSceneInstances[index];
+                GUIContent name = new((index + 1) + ". " + @class.implementation.GetType().Name);
                 if (GUILayout.Button(name,
                         EditorStyles.linkLabel))
                 {
                     Selection.SetActiveObjectWithContext(@class.implementation, null);
                 }
+
                 var rect = GUILayoutUtility.GetLastRect();
                 rect.width = EditorStyles.linkLabel.CalcSize(name).x;
                 EditorGUIUtility.AddCursorRect(rect, MouseCursor.Link);
             }
         }
-        
+
 
         DrawUILine(Color.white);
         EditorGUILayout.EndVertical();
     }
+
     private void DrawUILine(Color color, int thickness = 2, int padding = 10)
     {
-        Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding+thickness));
+        Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding + thickness));
         r.height = thickness;
-        r.y+=padding/2;
-        r.x-=2;
-        r.width +=6;
+        r.y += padding / 2;
+        r.x -= 2;
+        r.width += 6;
         EditorGUI.DrawRect(r, color);
     }
 }
