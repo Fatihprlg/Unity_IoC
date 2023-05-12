@@ -10,7 +10,7 @@ public class DependentClass : MonoBehaviour
     [Dependency] private ExampleSingleton singleton;
     public void Start()
     {
-        this.Inject();
+       // this.Inject();
         TestIt();
         SingletonIsHere();
     }

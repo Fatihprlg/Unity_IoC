@@ -4,19 +4,22 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-[Serializable]
-public class Container
+namespace IOC
 {
-    protected Dictionary<Type, Dictionary<string, GameObject>> implementations = new Dictionary<Type, Dictionary<string, GameObject>>();
-    protected readonly Dictionary<Type, Dictionary<string, Type>> types = new Dictionary<Type, Dictionary<string, Type>>();
-    protected readonly Dictionary<Type, TypeData> typeDatas = new Dictionary<Type, TypeData>();
+    
+[Serializable]
+public class Container : IDisposable
+{
+    protected Dictionary<Type, Dictionary<string, GameObject>> implementations = new ();
+    protected readonly Dictionary<Type, Dictionary<string, Type>> types = new ();
+    protected readonly Dictionary<Type, TypeData> typeDatas = new ();
 
     public virtual void Register(Type interfaceType, Type type, ClassInfo info)
     {
         try
         {
-            TypeData typeData = TypeData.Create(type, info.isSingleton, type.IsSubclassOf(typeof(MonoBehaviour)) ? info.implementation : null);
-            string key = "";
+            var typeData = TypeData.Create(type, info.isSingleton, type.IsSubclassOf(typeof(MonoBehaviour)) ? info.implementation : null);
+            var key = "";
             object implementation;
             if (type.IsSubclassOf(typeof(MonoBehaviour)))
             {
@@ -147,11 +150,17 @@ public class Container
         var implementationOfType = imp.GetComponent(type);
         return implementationOfType;
     }
-
+    
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+    }
 }
 [Serializable]
 public struct ClassInfo
 {
     public MonoBehaviour implementation;
     public bool isSingleton;
+}
+
 }

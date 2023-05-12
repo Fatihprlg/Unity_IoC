@@ -1,5 +1,6 @@
-interface IContext
+namespace IOC
 {
-    public void Initialize();
-    public void CreateBuilder();
+    internal interface IContext
+    {
+    }
 }

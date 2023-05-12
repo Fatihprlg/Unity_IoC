@@ -1,8 +1,11 @@
-using System.Collections.Generic;
-using UnityEngine;
 
-interface IBuilder
+using System.Collections.Generic;
+
+namespace IOC
 {
-    public void Build(Container container);
-    public void MapClasses();
+    internal interface IBuilder
+    {
+        public void Build(Container container, List<AssemblyField> assemblies);
+        public void MapClasses();
+    }
 }
